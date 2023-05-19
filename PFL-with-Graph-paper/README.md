@@ -83,3 +83,59 @@ $$
 4).	$S\left(u_i, u_j\right)$ 两个关系模型参数的欧几里得距离。
 
 ### 2.2 Structured Federated Learning的工作流程是怎么样的？
+
+结构化联邦学习（Structured Federated Learning, SFL）的工作流程主要包括以下步骤：
+
+1. **本地更新**：在每个通信轮次中，每个客户端i都会更新其本地模型参数$v_i$。这是通过进行本地模型训练与正则化项来完成的。具体的更新公式为：
+
+   $$v_i^{(t)} = v_i^{(t)} - \eta \nabla \left( F_i(v_i^{(t)}) + \lambda [R(v_i^{(t)}, w^{(t)}) + R(v_i^{(t)}, u_i^{(t)})] \right)$$
+
+   其中，$F_i(v_i^{(t)})$是客户端i的本地损失函数，$\lambda$是正则化系数，$R(v_i^{(t)}, w^{(t)})$和$R(v_i^{(t)}, u_i^{(t)})$是正则化项，$\eta$是学习率。
+
+2. **基于结构的聚合**：在服务器端，使用图卷积网络（Graph Convolutional Network, GCN）进行模型聚合。首先，将所有客户端的本地模型参数$v_i$作为输入，然后通过GCN更新每个客户端的个性化模型参数$u_i$。具体的更新公式为：
+
+   $$u_i^{(t+1)} = \text{GCN}(A, \{u_i^{(t+1)}\}_{i=1}^N)$$
+
+   其中，A是邻接矩阵，表示客户端之间的关系。
+
+   然后，通过GCN的read-out操作来更新全局模型参数w。具体的更新公式为：
+
+   $$w^{(t+1)} = \text{GCN readout}(\{u_i^{(t+1)}\}_{i=1}^N)$$
+
+3. **（可选）结构学习**：如果邻接矩阵A不存在，我们将添加一个结构学习步骤。具体的更新公式为：
+
+   $$A = \text{Structure learn}(\{v_i^{(t+1)}, u_i^{(t+1)}, w^{(t+1)}\}_{i=1}^N)$$
+
+这个过程会在多个通信轮次中迭代进行，直到达到预定的通信轮次数或满足其他停止条件。
+
+### 2.3 什么是GCN的read-out operator？
+
+在图卷积网络（Graph Convolutional Network, GCN）中，read-out操作是一种特殊的操作，它的目标是从图的所有节点特征中提取全局信息。这通常涉及到对所有节点的特征进行某种形式的聚合，例如求和、平均或最大化。
+
+在结构化联邦学习（Structural Federated Learning）的上下文中，read-out操作被用来更新全局模型参数w。具体来说，它通过聚合所有个性化模型参数ui来更新全局模型参数w。这样，全局模型参数w就能够反映所有客户端的本地模型的共享信息。
+
+总的来说，GCN的read-out操作是一种从图的全局结构中提取信息的方法，它在处理图形数据时非常重要，因为图形数据的全局结构通常包含了重要的信息。
+
+### 2.4 在文章开源的代码中GCN模型结构是怎么样的？
+在这个GitHub仓库的代码中，并没有明确地定义一个图卷积网络（GCN）的模型结构。相反，它使用了一种基于图的参数聚合方法，这种方法的思想与GCN的思想类似，但并没有显式地定义一个GCN模型。
+
+具体来说，这个代码中的`graph_dic`函数实现了一种基于图的参数聚合方法。在每个通信轮次中，它将每个客户端的模型参数看作一个节点，然后使用邻接矩阵和参数矩阵进行矩阵乘法操作，得到新的参数矩阵。这个过程可以看作是GCN的前向传播过程，其中邻接矩阵代表了图的结构，参数矩阵代表了节点的特征。
+
+然而，这个过程并没有显式地定义一个GCN模型，也没有进行GCN的反向传播和参数优化。这是因为在联邦学习中，每个客户端的模型参数是在本地进行更新的，然后再使用这种基于图的参数聚合方法进行聚合。因此，这个过程更像是在使用GCN的思想，而不是在使用一个明确的GCN模型。
+
+在开源的代码中：
+
+```python
+aggregated_param = torch.mm(A, param_metrix)
+    for i in range(args.layers - 1):
+        aggregated_param = torch.mm(A, aggregated_param)
+    new_param_matrix = (args.serveralpha * aggregated_param) + ((1 - args.serveralpha) * param_metrix)
+```
+
+是使用GCN来聚合本地模型。
+
+首先，`aggregated_param = torch.mm(A, param_metrix)`这行代码是在进行矩阵乘法操作，将邻接矩阵`A`和参数矩阵`param_metrix`相乘。在这个上下文中，邻接矩阵`A`表示客户端之间的连接关系，参数矩阵`param_metrix`的每一行表示一个客户端的模型参数向量。因此，这个矩阵乘法操作的结果是一个新的参数矩阵，其中的每一行是原始参数矩阵的行（即客户端的模型参数向量）与邻接矩阵的对应行（即与该客户端连接的所有客户端的连接强度）的加权和。
+
+然后，`for i in range(args.layers - 1): aggregated_param = torch.mm(A, aggregated_param)`这两行代码是在进行多层的图卷积操作。在每一层中，都使用邻接矩阵`A`和当前的参数矩阵`aggregated_param`进行矩阵乘法操作，得到新的参数矩阵。这样，每一层的图卷积操作都会使模型参数的更新考虑到更远的邻居。
+
+最后，`new_param_matrix = (args.serveralpha * aggregated_param) + ((1 - args.serveralpha) * param_metrix)`这行代码是在进行线性组合操作，将聚合后的参数矩阵`aggregated_param`和原始参数矩阵`param_metrix`进行线性组合，得到新的参数矩阵。这里的`args.serveralpha`是一个权重参数，用于控制聚合后的参数和原始参数在新的参数中的比例。
