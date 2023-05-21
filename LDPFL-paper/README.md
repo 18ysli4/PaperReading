@@ -1,5 +1,7 @@
 # 学习：LDP-FL: Practical Private Aggregation in Federated Learning with Local Differential Privacy
 
+["附上一个实现了差分隐私联邦学习的GitHub仓库"](https://github.com/wenzhu23333/Differential-Privacy-Based-Federated-Learning)
+
 ## 1. 摘要、引言
 ### 1.1现有的方法中存在什么问题？这篇文章是怎么解决的？
 

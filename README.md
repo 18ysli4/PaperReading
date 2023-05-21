@@ -5,3 +5,4 @@
 2.	[学习Personalized Federated Learning With a Graph](https://github.com/18ysli4/PaperReading/tree/main/PFL-with-Graph-paper)
 3.	[学习LDP-FL: Practical Private Aggregation in Federated Learning with Local Differential Privacy](https://github.com/18ysli4/PaperReading/tree/main/LDPFL-paper)
 
+4. [学习Deep Leakage from Gradients](https://github.com/18ysli4/PaperReading/tree/main/Deep-Leakage-paper)
