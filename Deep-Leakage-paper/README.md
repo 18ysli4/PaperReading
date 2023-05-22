@@ -3,6 +3,7 @@
 相关链接：
 
 1. [Deep Leakage from Gradients原文](https://proceedings.neurips.cc/paper/2019/file/60a6c4002cc7b29142def8871531281a-Paper.pdf)
+1. [GitHub上的论文源码](https://github.com/mit-han-lab/dlg)
 
 ## 1. 摘要、介绍
 
@@ -86,3 +87,29 @@ DLG（Deep Leakage from Gradients）算法的步骤如下：
 通过这个过程，DLG算法能够从公开共享的梯度中获取私有的训练数据。
 
 ### 2.2 为什么需要假设F是二次可微的？
+
+
+
+### 3. 实验
+
+#### 3.1 文章的第4.3节中，作者对算法的第六行进行了修改。修改后的公式有什么含义？
+
+<img src="/Users/liyusen/Desktop/Git/PaperReading/Deep-Leakage-paper/figure/algorithm.png" alt="algorithm" style="zoom:40%;" />
+
+原公式：
+$$
+\mathbf{x}_{i+1}^{\prime} \leftarrow \mathbf{x}_i^{\prime}-\eta \nabla_{\mathbf{x}_i^{\prime}} \mathbb{D}_i, \\\mathbf{y}_{i+1}^{\prime} \leftarrow \mathbf{y}_i^{\prime}-\eta \nabla_{\mathbf{y}_i^{\prime}} \mathbb{D}_i
+$$
+在算法的第六行中，作者对批处理数据进行了修改。在原始算法中，当批处理数据的大小N≥1时，如果我们直接应用算法，算法的收敛速度会很慢。作者认为这是因为批处理数据可以有N!种不同的排列，这使得优化器难以选择梯度方向。
+
+为了使优化更接近解决方案，作者选择更新一个单独的训练样本，而不是更新整个批处理。因此，他们修改了算法的第六行，修改后的公式：
+
+$$
+\begin{aligned}
+& \mathbf{x}_{t+1}^{\prime i \bmod N} \leftarrow \mathbf{x}_t^{\prime i \bmod N}-\nabla_{\mathbf{x}_{t+1}^{\prime i \bmod N}} \mathbb{D} \\
+& \mathbf{y}_{t+1}^{\prime i \bmod N} \leftarrow \mathbf{y}_t^{\prime i \bmod N}-\nabla_{\mathbf{y}_{t+1}^{\prime i \bmod N}} \mathbb{D}
+\end{aligned}
+$$
+这里的x′和y′分别代表虚拟输入和标签，N是批处理的大小，i是迭代次数，t是时间步，D是梯度距离，∇是梯度符号。
+
+这个修改的含义是，对于每一次迭代，我们只更新一个训练样本（即i mod N），而不是更新整个批处理。我们通过减去对应的梯度距离的梯度来更新这个训练样本。这样做可以使优化更快地收敛，并且可以观察到稳定的收敛性。
